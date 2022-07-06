@@ -99,6 +99,24 @@ function is_compatible_with_dir_loops(inter::Interaction)
 end
 
 
+"""
+    solve_set(weights, mode)
+
+Solve one set of directed loop equations. For explanation, see Siljuåsen and Sandvik, 2002 (section III). 
+
+For example, directed loop equations can look like
+W1 = a11 + a12 + a13
+W2 = a21 + a22 + a23
+W3 = a31 + a32 + a33
+where W1, W2, W3 are the vertex weights (i.e. matrix elements of a local Hamiltonian) determined by the legs' configuration s (s=1,2,3). 
+a_ij are the probabilities that given vertex state i and some chosen entrance leg, the directed loop will transition into the vertex state j going through some exit leg. 
+Because the detailed balance has to be satisfied, a_ij = a_ji.
+We want to solve for probabilities a_ij. Since the set of equations is underdetermined, there are many solutions.
+
+# Arguments
+- `weights::Vector{<:Real}`: vertex weights W_i
+- `mode`: how to solve the directed loop eqations. "heat-bath" mode uses the heat bath solution. "linear-programming" uses a linear programming solver to minimize the probabilities of bounces (a_ii).
+"""
 function solve_set(; weights::Vector{<:Real}, mode="heat-bath")
     n = length(weights)
     w_sum = sum(weights)

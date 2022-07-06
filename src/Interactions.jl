@@ -9,9 +9,9 @@ export Interaction
 Interaction terms for all bonds 
 # Fields
 - `dof_max::Int32`: each d.o.f. is represented by an integer from 1 to `dof_max`.
-- `hams::Vector{Array{<:Number}}`: 
-- `int_bonds::Vector{Vector{<:Integer}}`:
-- `bonds::Array{<:Integer}`:
+- `hams::Vector{Array{<:Number}}`: vector containing different types of local Hamiltonians
+- `int_bonds::Vector{Vector{<:Integer}}`: vector of vectors with bonds corresponding to every Hamiltonian from `ham` (has to be the same length as `ham`)
+- `bonds::Array{<:Integer}`: spins associated to each bond (see `construct_lattice()` function from ConstructLattice.jl)
 
 """
 struct Interaction
