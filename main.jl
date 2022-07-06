@@ -13,7 +13,7 @@ Ly = 2
 bonds = square_lattice_NN(Lx=Lx, Ly=Ly)
 println("bonds: "); display(bonds); println("\n");
 Nb = size(bonds)[2]     # total number of bonds
-N = Lx * Ly               # total number of d.o.f.
+N = Lx * Ly             # total number of d.o.f.
 
 # Construct interactions (i.e. associate a local Hamiltonian to every bond on the lattice)
 dof_max = 2     # each d.o.f. is represented by an integer from 1 to `dof_max`.
@@ -31,18 +31,15 @@ println("H: "); display(H); println("\n")
 hams = [H]
 int_bonds = [[1:Nb;]]
 inter = Interaction(dof_max, hams, int_bonds, bonds)
+println(inter)
 
 
-println("Compatible with the directed loop update scheme? ", is_compatible_with_dir_loops(inter))
+println("Compatible with the directed loop update scheme: ", is_compatible_with_dir_loops(inter))
 
 
 
 
-# # Parameters
-# Lx = 3
-# Ly = 3
-# N = Lx * Ly   # total number of sites
-# Nb = 2N
+
 # beta = 0.1  # inverse temperature
 
 # # First, we perform 'steps_eq' MC sweeps to equilibrate the system. Then we perform 'nbins' bins with 'steps_bin' MC sweeps in each, and we do measurements after each bin.
