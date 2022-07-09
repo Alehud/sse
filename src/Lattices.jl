@@ -1,6 +1,3 @@
-module ConstructLattice
-
-using IterTools
 
 export LatticePoint, construct_lattice, chain_NN, chain_NN_NNN, chain_NN_3_site, square_lattice_NN, square_lattice_plaquette, cubic_lattice_NN, honeycomb_lattice_NN,
        square_lattice_links_plaquette, square_lattice_links_star
@@ -42,9 +39,9 @@ end
 Construct interactions (or "bonds") on a lattice. 
 
 Each site of the lattice has a d.o.f. and is labeled with an integer (from 1 to N).
-Create a 2D array `bonds`. i'th column of `bonds` contains indices of d.o.f.s participating in i'th interaction term (bond).
-I.e., if `bonds[1,i] == a`, `bonds[2,i] == b`, ..., it means that i'th bond connects d.o.f.s a, b, ...
-The number of rows in `bonds` is the maximal number of d.o.f.s in a single interaction. For interactions with smaller number of d.o.f.s, the remaining
+Create a 2D array `bond_map`. i'th column of `bond_map` contains indices of d.o.f.s participating in i'th interaction term (bond).
+I.e., if `bond_map[1,i] == a`, `bond_map[2,i] == b`, ..., it means that i'th bond connects d.o.f.s a, b, ...
+The number of rows in `bond_map` is the maximal number of d.o.f.s in a single interaction. For interactions with smaller number of d.o.f.s, the remaining
 rows are filled with 0.
 
 # Arguments
@@ -63,7 +60,7 @@ function construct_lattice(; linear_size::Tuple{Vararg{<:Integer}}, sites_in_uc:
     # WARNING: provide the minimal possible set of interactions. There is no check whether any of the interactions in `interaction_types` are related
     # by translation.
     max_int_size = maximum(map(length, interaction_types))    # maximal number of degrees of freedom in a single interaction
-    bonds = zeros(Int32, max_int_size, Nb)
+    bond_map = zeros(Int32, max_int_size, Nb)
     
     b = 1
     for interaction in interaction_types
@@ -71,15 +68,15 @@ function construct_lattice(; linear_size::Tuple{Vararg{<:Integer}}, sites_in_uc:
         for i in Iterators.product(Base.OneTo.(linear_size)...)
             # Iterate over lattice points in each interaction type
             for (p_ind, p) in enumerate(interaction)
-                # Shift the unit cell by the vector `i` (with p.b.c.), calculate the bare index of the site, and fill in `bonds`.
+                # Shift the unit cell by the vector `i` (with p.b.c.), calculate the bare index of the site, and fill in `bond_map`.
                 pp = LatticePoint((p.unit_cell .+ i .- 1 .- 1) .% linear_size .+ 1 , p.site)
-                bonds[p_ind, b] = bare_ind(pp, linear_size, sites_in_uc)
+                bond_map[p_ind, b] = bare_ind(pp, linear_size, sites_in_uc)
             end
             b += 1
         end
     end
     
-    return bonds
+    return bond_map
 end
 
 
@@ -196,12 +193,4 @@ function square_lattice_links_plaquette_star(; Lx::Int, Ly::Int)
     interaction_types = [[LatticePoint((1,1), 1), LatticePoint((1,1), 2), LatticePoint((2,1), 2), LatticePoint((1,2), 1)]]
     push!(interaction_types, [LatticePoint((1,1), 1), LatticePoint((1,1), 2), LatticePoint((Lx,1), 1), LatticePoint((1,Ly), 2)])
     return construct_lattice(linear_size=(Lx, Ly), sites_in_uc=2, interaction_types=interaction_types)
-end
-
-
-
-
-
-
-
 end
