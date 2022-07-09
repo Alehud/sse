@@ -1,18 +1,14 @@
-include("src/ConstructLattice.jl")
-include("src/Interactions.jl")
-include("src/DirectedLoops.jl")
-include("src/Updates.jl")
-using .ConstructLattice
-using .Interactions
-using .DirectedLoops
-using .Updates
+include("src/SSE.jl")
+using .SSE
 
-# Construct the lattice (i.e., the geometry of interaction terms, or "bonds")
+# Construct the lattice (i.e., the geometry of interaction terms, or `bond_map`)
 Lx = 2
 Ly = 2
-bonds = square_lattice_NN(Lx=Lx, Ly=Ly)
-println("bonds: "); display(bonds); println("\n");
-Nb = size(bonds)[2]     # total number of bonds
+bond_map = square_lattice_NN(Lx=Lx, Ly=Ly)
+println("bond_map: ");
+display(bond_map);
+println("\n");
+Nb = size(bond_map)[2]     # total number of bonds
 N = Lx * Ly             # total number of d.o.f.
 
 # Construct interactions (i.e. associate a local Hamiltonian to every bond on the lattice)
@@ -27,14 +23,24 @@ H = [ε 0 0 0
     0 Δ/2+hb+ε 0.5 0
     0 0.5 Δ/2+hb+ε 0
     0 0 0 2hb+ε]
-println("H: "); display(H); println("\n")
-hams = [H]
-int_bonds = [[1:Nb;]]
-inter = Interaction(dof_max, hams, int_bonds, bonds)
-println(inter)
+println("H: ");
+display(H);
+println("\n");
+
+ham = Hamiltonian(dof_max, H)
+print(ham)
+
+# hams = [H]
+# int_bonds = [[1:Nb;]]
+# inter = Interaction(dof_max, hams, int_bonds, bond_map)
+# println(inter)
 
 
-println("Compatible with the directed loop update scheme: ", is_compatible_with_dir_loops(inter))
+
+
+# println("Compatible with the directed loop update scheme: ", is_compatible_with_dir_loops(inter))
+# solve_directed_loop_equations(inter)
+
 
 
 
@@ -47,8 +53,8 @@ println("Compatible with the directed loop update scheme: ", is_compatible_with_
 # steps_bin = 200
 # steps_eq = 100
 
-# bonds = construct_square_lattice(Lx=Lx, Ly=Ly)
-# display(bonds)
+# bond_map = construct_square_lattice(Lx=Lx, Ly=Ly)
+# display(bond_map)
 
 # # Initialization
 # spins = Array{Bool}(undef, N)
@@ -58,7 +64,7 @@ println("Compatible with the directed loop update scheme: ", is_compatible_with_
 # # vals.M is the highest power in the Taylor expansion, i.e., the number of layers in the "time" direction.
 # # vals.n is the number of non-identity operators on the lattice
 # op_type = zeros(Int8, vals.M)    # type of operator in each "time" layer, 0 - no operator (identity), 1 - diagonal operator, 2 - off-diagonal operator
-# op_ind = fill(-1, vals.M)        # bond index of the operator (taken from 'bonds'), from 1 to Nb, -1 - no operator (identity)
+# op_ind = fill(-1, vals.M)        # bond index of the operator (taken from `bond_map`), from 1 to Nb, -1 - no operator (identity)
 # first_leg = fill(-1, N)          # label of the first (closest to m=1 "time" layer) leg of a non-identity operator on each site
 # last_leg = fill(-1, N)           # label of the last (closest to m=M "time" layer) leg of a non-identity operator on each site
 # vertex_list = fill(-1, 4vals.M)       # linked vertex list, see comment to linked_vertex_list()

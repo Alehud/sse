@@ -1,7 +1,3 @@
-module Updates
-
-using Random
-
 export initialize!, Vals, equilibrate!, diagonal_update!, off_diagonal_update, linked_vertex_list, adjust_cut_off, measure
 
 # A mutable struct is used, so that we can change M and n from inside of functions.
@@ -49,10 +45,4 @@ function adjust_cut_off()
 end
 
 function measure()
-end
-
-
-
-
-
 end
