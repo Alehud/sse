@@ -5,9 +5,7 @@ using .SSE
 Lx = 2
 Ly = 2
 bond_map = square_lattice_NN(Lx=Lx, Ly=Ly)
-println("bond_map: ");
-display(bond_map);
-println("\n");
+# println("bond_map: "); display(bond_map); println("\n");
 Nb = size(bond_map)[2]     # total number of bonds
 N = Lx * Ly             # total number of d.o.f.
 
@@ -19,16 +17,19 @@ dof_max = 2     # each d.o.f. is represented by an integer from 1 to `dof_max`.
 J = 1.0
 h = 0.5
 hb = h / (2 * 2J)
-H = [ε 0 0 0
-    0 Δ/2+hb+ε 0.5 0
-    0 0.5 Δ/2+hb+ε 0
-    0 0 0 2hb+ε]
-println("H: ");
-display(H);
-println("\n");
+H_XXZ = [ε 0 0 0
+         0 Δ/2+hb+ε 0.5 0
+         0 0.5 Δ/2+hb+ε 0
+         0 0 0 2hb+ε]
+# println("H: "); display(H); println("\n");
 
-ham = Hamiltonian(dof_max, H)
-print(ham)
+H = Hamiltonian(dof_max, H_XXZ)
+println(H.ham)
+println(H.dof_max)
+println(H.n_legs)
+println(H.labels)
+println(H.labels_dof)
+
 
 # hams = [H]
 # int_bonds = [[1:Nb;]]
