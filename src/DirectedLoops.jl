@@ -1,13 +1,4 @@
-module DirectedLoops
-
-using ..Interactions
-using LinearAlgebra
-using IterTools
-using JuMP
-using GLPK
-using Graphs
-
-export solve_set, is_compatible_with_dir_loops
+export is_compatible_with_dir_loops, solve_set, solve_directed_loop_equations
 
 
 """
@@ -28,7 +19,7 @@ function is_compatible_with_dir_loops(inter::Interaction)
     compatible_with_const = true
 
     # Iterate over Hamiltonians in the interaction.
-    for ham in inter.hams
+    for H in inter.hams
         # We will create a graph `g` with vertices representing allowed vertex configurations and edges connecting vertices that can be brought to each other by
         # changing no more than 2 legs. We also include all diagonal configurations in the graph (even if they are not allowed). Ids of disallowed diagonal
         # vertices are stored in `excluded_vertices`. In `g_items` we store vertices of the graph in the format (ii, jj), where ii and jj are tuples denoting
@@ -37,15 +28,13 @@ function is_compatible_with_dir_loops(inter::Interaction)
         excluded_vertices = Int[]
         
         # Construct `g_items` and `excluded_vertices`.
-        ss = size(ham)
-        bond_size = round(Int, log(inter.dof_max, ss[1]))
         range = [0:inter.dof_max-1;]
-        powers = inter.dof_max .^ [0:bond_size-1;]
-        iterator = fill(range, bond_size)
+        powers = inter.dof_max .^ [0:H.n_legs-1;]
+        iterator = fill(range, H.n_legs)
         for ii in IterTools.product(iterator...), jj in IterTools.product(iterator...)
             i = sum(ii .* powers) + 1
             j = sum(jj .* powers) + 1
-            if ham[i, j] ≠ 0
+            if H.ham[i, j] ≠ 0
                 tup = (ii, jj)
                 push!(g_items, tup)
             elseif i == j
@@ -177,5 +166,27 @@ function solve_set(; weights::Vector{<:Real}, mode="heat-bath")
 end
 
 
+function solve_directed_loop_equations(inter::Interaction)
+    probabilities = Vector{Array}(undef, length(inter.hams))
+    println("inter.bond_map:"); display(inter.bond_map); println("\n")
 
+    for (i, (ham, ham_bonds)) in enumerate(zip(inter.hams, inter.int_bonds))
+        println(i)
+        display(ham); println("\n")
+        println(ham_bonds)
+        num_legs = 2*length(inter.bonds[:, ham_bonds[1]])   # number of operator's legs
+        num_states = length(ham)  # number of possible vertex states (i.e., the number of matrix elements in the Hamiltonian)
+        P = Array{Any}(undef, num_legs, num_states) # first dimension is the number of legs, the second dimension is the number of possible vertex states
+        
+        println(size(P))
+        for s_down in 1:size(ham)[1], s_up in 1:size(ham)[2]
+            s = (s_down, s_up)  # states of bottom legs (s_down) and top legs (s_up) of the vertex
+            s_ind = (s_down - 1)*size(ham)[1] + (s_up - 1) + 1  # index of the state (from 1 to num_states) -> to write down the probability in P
+            for leg in 1:num_legs
+                if !isassigned(P, leg, s_ind)
+                    println("")
+                end
+            end
+        end
+    end
 end

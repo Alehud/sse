@@ -21,25 +21,21 @@ H_XXZ = [ε 0 0 0
          0 Δ/2+hb+ε 0.5 0
          0 0.5 Δ/2+hb+ε 0
          0 0 0 2hb+ε]
-# println("H: "); display(H); println("\n");
+# println("H_XXZ: "); display(H_XXZ); println("\n");
 
 H = Hamiltonian(dof_max, H_XXZ)
-println(H.ham)
-println(H.dof_max)
-println(H.n_legs)
-println(H.labels)
-println(H.labels_dof)
+# println(H.ham)
+# println(H.dof_max)
+# println(H.n_legs)
+# println(H.labels)
+# println(H.labels_dof)
 
-
-# hams = [H]
-# int_bonds = [[1:Nb;]]
-# inter = Interaction(dof_max, hams, int_bonds, bond_map)
+hams = [H]
+ham_bonds = [[1:Nb;]]
+inter = Interaction(dof_max, hams, ham_bonds, bond_map)
 # println(inter)
 
-
-
-
-# println("Compatible with the directed loop update scheme: ", is_compatible_with_dir_loops(inter))
+println("Compatible with the directed loop update scheme: ", is_compatible_with_dir_loops(inter))
 # solve_directed_loop_equations(inter)
 
 
