@@ -16,7 +16,7 @@ struct Hamiltonian
     n_legs::Int32
     ham::Array{<:Number}
     labels::Vector{CartesianIndex{2}}
-    labels_dof::Vector{Tuple{Tuple{Vararg{Int32}}, Tuple{Vararg{Int32}}}}
+    labels_dof::Vector{Tuple{Vector{<:Integer}, Vector{<:Integer}}}
     
     function Hamiltonian(dof_max, ham)
         ss = size(ham)
@@ -35,9 +35,9 @@ struct Hamiltonian
         else
             n_legs = round(Int, log(dof_max, ss[1]))
             labels = findall(ham .≠ 0)
-            labels_dof = Vector{Tuple{NTuple{n_legs, Int32}, NTuple{n_legs, Int32}}}(undef, length(labels))
+            labels_dof = Vector{Tuple{Vector{<:Integer}, Vector{<:Integer}}}(undef, length(labels))
             for (i, lbl) in enumerate(labels)
-                labels_dof[i] = (Tuple(int2base(lbl[1] - 1, dof_max, n_legs)), Tuple(int2base(lbl[2] - 1, dof_max, n_legs)))
+                labels_dof[i] = (int2base(lbl[1] - 1, dof_max, n_legs, offset_zero=true), int2base(lbl[2] - 1, dof_max, n_legs, offset_zero=true))
             end
             new(dof_max, n_legs, ham, labels, labels_dof)
         end
