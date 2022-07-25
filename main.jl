@@ -12,11 +12,11 @@ N = Lx * Ly             # total number of d.o.f.
 # Construct interactions (i.e. associate a local Hamiltonian to every bond on the lattice)
 dof_max = 2     # each d.o.f. is represented by an integer from 1 to `dof_max`.
 # Local Hamiltonian
-ε = 0.1
-Δ = 1.0
+Δ = 0.5
 J = 1.0
 h = 0.5
 hb = h / (2 * 2J)
+ε = ((1-Δ)/2 - hb)/2
 H_XXZ = [ε 0 0 0
          0 Δ/2+hb+ε 0.5 0
          0 0.5 Δ/2+hb+ε 0
@@ -35,8 +35,10 @@ ham_bonds = [[1:Nb;]]
 inter = Interaction(dof_max, hams, ham_bonds, bond_map)
 # println(inter)
 
-println("Compatible with the directed loop update scheme: ", is_compatible_with_dir_loops(inter))
-# solve_directed_loop_equations(inter)
+# println("Compatible with the directed loop update scheme: ", is_compatible_with_dir_loops(inter))
+solve_directed_loop_equations(inter)
+
+
 
 
 
