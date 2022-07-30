@@ -1,10 +1,22 @@
 export int2base, base2int
 
+"""
+    int2base(n, b, num_digits, offset_zero=false)
+
+Convert an integer `n` to a vector containing the representation of `n` in a given base `b`. The total number of vector elements is `num_digits`.
+
+# Arguments
+- `n::Integer`: a (non-negative) integer to be converted
+- `b::Integer`: the base (positive integer > 1)
+- `num_digits::Integer`: total number of digits in the representation (length of the resulting vector). Has to fit all non-zero digits of `n` in base `b`.
+- `offset_zero::Bool=false`: if true, all the digits in the final representation are incremented by 1.
+
+"""
 function int2base(n::Integer, b::Integer, num_digits::Integer; offset_zero::Bool=false)
     if (n < 0)
         raise(error("`n` has to be non-negative."))
-    elseif b ≤ 0
-        raise(error("`b` has to be positive."))
+    elseif b ≤ 1
+        raise(error("`b` has to be positive > 1."))
     elseif num_digits ≤ 0
         raise(error("`num_digits` has to be positive."))
     end
@@ -24,7 +36,26 @@ function int2base(n::Integer, b::Integer, num_digits::Integer; offset_zero::Bool
 end
 
 
+"""
+    base2int(digits, b, offset_zero=false)
+
+Convert a vector `digits` containing the digits in a given base `b` to the corresponding integer.
+
+# Arguments
+- `digits::Vector{<:Integer}`: a vector of non-negative integers (each less than `b`)
+- `b::Integer`: the base (positive integer)
+- `offset_zero::Bool=false`: if true, all the digits in the final representation are incremented by 1.
+
+"""
 function base2int(digits::Vector{<:Integer}, b::Integer; offset_zero::Bool=false)
+    if b ≤ 1
+        raise(error("`b` has to be positive > 1."))
+    elseif any(digits < 0) ||
+        raise(error("`digits` cannot contain negative integers."))
+    elseif any(digits .≥ b)
+        raise(error("Integers in `digits` have to be less than base `b`."))
+    end
+    
     digits_temp = copy(digits)
     if offset_zero
         digits_temp .-= 1
