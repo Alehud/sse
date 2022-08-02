@@ -163,133 +163,86 @@ function solve_set(; weights::Vector{<:Real}, mode="heat-bath")
 end
 
 
+"""
+    solve_directed_loop_equations(inter)
+
+Solve directed loop equations and construct a tensor with probabilities that can be directly used to determine where the loop goes next once it enters a certain vertex.
+The final tensor looks like P[type of hamiltonian][label, entrance leg, new state of entrance leg, exit leg, new state of exit leg].
+
+# Arguments
+- `inter::Interaction`: interaction
+
+"""
 function solve_directed_loop_equations(inter::Interaction)
-    open("file.txt", "a") do io
-        P = Vector{Array}(undef, length(inter.hams))
-        # println(io, "inter.bond_map:"); println(io, inter.bond_map); println(io, "\n")
+    P = Vector{Array}(undef, length(inter.hams))
 
-        for (ham_idx, (H, ham_bonds)) in enumerate(zip(inter.hams, inter.ham_bonds))
-            # println(io, "ham_idx: ", ham_idx)
-            # println(io, H)
-            # println(io, H.ham); println(io, "\n")
-            # println(io, "ham_bonds: ", ham_bonds)
-            # println(io, H.n_legs)
-            # println(io, H.labels)
-            # println(io, H.labels_dof)
+    for (ham_idx, (H, ham_bonds)) in enumerate(zip(inter.hams, inter.ham_bonds))
+        prob = fill(Float32(-1.0), (length(H.labels), 2H.n_legs, H.dof_max, 2H.n_legs, H.dof_max))
+        # prob[label, entrance leg, new state of entrance leg, exit leg, new state of exit leg]
+        # If entrance and exit legs are the same, then the "new state of exit leg" decides the new state of this leg (not the "new state of entrance leg")!
 
-            prob = fill(Float32(-1.0), (length(H.labels), 2H.n_legs, H.dof_max, 2H.n_legs, H.dof_max))
-            # prob[label, entrance leg, new state of entrance leg, exit leg, new state of exit leg]
-            # If entrance and exit legs are the same, then the "new state of exit leg" decides the new state of this leg (not the "new state of entrance leg")!
+        for (idx, (label, label_dof)) in enumerate(zip(H.labels, H.labels_dof)), legₑ in 1:2H.n_legs, sₑ in 1:H.dof_max
+            
+            old_s_at_legₑ = label_dof[(legₑ-1) ÷ H.n_legs + 1][(legₑ-1) % H.n_legs + 1]
 
-            for (idx, (label, label_dof)) in enumerate(zip(H.labels, H.labels_dof)), legₑ in 1:2H.n_legs, sₑ in 1:H.dof_max
-                
-                old_s_at_legₑ = label_dof[(legₑ-1) ÷ H.n_legs + 1][(legₑ-1) % H.n_legs + 1]
-
-                # If already assigned, skip.
-                if prob[idx, legₑ, sₑ, legₑ, old_s_at_legₑ] ≥ 0
-                    # println(io, "\nRow is already assigned. Setting remaining values to 0. \n")
-                    for legₓ in 1:2H.n_legs, sₓ in 1:H.dof_max
-                        if prob[idx, legₑ, sₑ, legₓ, sₓ] < 0
-                            prob[idx, legₑ, sₑ, legₓ, sₓ] = 0
-                        end
-                    end
-                    continue
-                end
-
-                # Construct a set of directed loop equations by iterating over all exit legs and all new states of the exit leg.
-                labels_set = CartesianIndex[]  # vector of Cartesian indices corresponding to labels in rows of the set of directed loop equations
-                idx_set = Integer[]
-                legₓ_set = Integer[] # vector of exit legs in columns of the set
-                sₓ_set = Integer[]  # vector of new exit leg states in columns of the set
-                legₑ_set = Integer[] # vector of entrance legs in rows of the set
-                sₑ_set = Integer[]  # vector of new entrance leg states in rows of the set
-                push!(labels_set, label)
-                push!(idx_set, idx)
-                push!(legₓ_set, legₑ)
-                push!(sₓ_set, old_s_at_legₑ)
-                push!(legₑ_set, legₑ)
-                push!(sₑ_set, sₑ)
-
+            # If already assigned, skip.
+            if prob[idx, legₑ, sₑ, legₑ, old_s_at_legₑ] ≥ 0
                 for legₓ in 1:2H.n_legs, sₓ in 1:H.dof_max
-                    # println(io, "----------------------------------------------------------------------------------------")
-                    # println(io, idx, " ", label, " ", label_dof, " ", legₑ, " ", sₑ, " ", legₓ, " ", sₓ)
-
-                    # Construct the label of the new configuration.
-                    new_label_dof = (copy(label_dof[1]), copy(label_dof[2]))
-                    new_label_dof[(legₑ-1) ÷ H.n_legs + 1][legₑ - H.n_legs*((legₑ-1) ÷ H.n_legs)] = sₑ
-                    new_label_dof[(legₓ-1) ÷ H.n_legs + 1][legₓ - H.n_legs*((legₓ-1) ÷ H.n_legs)] = sₓ
-                    # println(io, "new_label_dof: ", new_label_dof)
-                    new_label = CartesianIndex(base2int(new_label_dof[1], H.dof_max, offset_zero=true) + 1, base2int(new_label_dof[2], H.dof_max, offset_zero=true) + 1)
-                    # println(io, "new_label: ", new_label)
-                    
-                    # Check if the matrix element of the new configuration is zero. If yes, skip.
-                    if H.ham[new_label] == 0
+                    if prob[idx, legₑ, sₑ, legₓ, sₓ] < 0
                         prob[idx, legₑ, sₑ, legₓ, sₓ] = 0
-                        # println(io, "new label is zero")
-                        continue
-                    elseif (new_label == label) && (legₑ == legₓ) && (sₓ == old_s_at_legₑ)
-                        # println(io, "same leg, same state")
-                    else
-                        new_idx = findall(x -> x == new_label, H.labels)[1]  # linear index of the new label (i.e. H.labels[new_idx] == new_label)
-                        new_legₑ = legₓ
-                        new_sₑ = label_dof[(legₓ-1) ÷ H.n_legs + 1][(legₓ-1) % H.n_legs + 1]
-                        # println(io, "new_idx: ", new_idx)
-                        # println(io, "adding values...")
-                        push!(labels_set, new_label)
-                        push!(idx_set, new_idx)
-                        push!(legₑ_set, new_legₑ)
-                        push!(sₑ_set, new_sₑ)
-                        push!(legₓ_set, legₓ)
-                        push!(sₓ_set, sₓ)
-                        # println(io, "labels_set: ", labels_set)
                     end
-                
                 end
-                # println(io, "\nLABELS_SET: ", labels_set)
-                # println(io, "idx_set: ", idx_set)
-                # println(io, "legₑ_set: ", legₑ_set)
-                # println(io, "sₑ_set: ", sₑ_set)
-                # println(io, "legₓ_set: ", legₓ_set)
-                # println(io, "sₓ_set: ", sₓ_set)
-                weights = [H.ham[c] for c in labels_set]
-                # println(io, "weights: ", weights)
-                A = solve_set(weights=weights, mode="linear-programming")
-                # println(io, "A: "); println(io, A); println(io, "\n");
-
-                # for legₓ in 1:2H.n_legs, sₓ in 1:H.dof_max
-                #     println(io, "label: ", label, ", legₑ: ", legₑ, ", sₑ: ", sₑ, ", legₓ: ", legₓ, ", sₓ: ", sₓ, "      prob: ", prob[idx, legₑ, sₑ, legₓ, sₓ])
-                # end
-                # println(io, "")
-
-                # Assign probabilities to the corresponding tensor elements of `prob`
-                for (i, (lbl_idx, leg_ent, s_ent)) in enumerate(zip(idx_set, legₑ_set, sₑ_set)), (j, (leg_exit, s_exit)) in enumerate(zip(legₓ_set, sₓ_set))
-                    prob[lbl_idx, leg_ent, s_ent, leg_exit, s_exit] = A[i,j]
-                end
-
-                # for legₓ in 1:2H.n_legs, sₓ in 1:H.dof_max
-                #     println(io, "label: ", label, ", legₑ: ", legₑ, ", sₑ: ", sₑ, ", legₓ: ", legₓ, ", sₓ: ", sₓ, "      prob: ", prob[idx, legₑ, sₑ, legₓ, sₓ])
-                # end
-                # println(io, "\n")
+                continue
             end
-            P[ham_idx] = prob
+
+            # Construct a set of directed loop equations by iterating over all exit legs and all new states of the exit leg.
+            labels_set = CartesianIndex[]  # vector of Cartesian indices corresponding to labels in rows of the set of directed loop equations
+            idx_set = Integer[]
+            legₓ_set = Integer[] # vector of exit legs in columns of the set
+            sₓ_set = Integer[]  # vector of new exit leg states in columns of the set
+            legₑ_set = Integer[] # vector of entrance legs in rows of the set
+            sₑ_set = Integer[]  # vector of new entrance leg states in rows of the set
+            push!(labels_set, label)
+            push!(idx_set, idx)
+            push!(legₓ_set, legₑ)
+            push!(sₓ_set, old_s_at_legₑ)
+            push!(legₑ_set, legₑ)
+            push!(sₑ_set, sₑ)
+
+            for legₓ in 1:2H.n_legs, sₓ in 1:H.dof_max
+                # Construct the label of the new configuration.
+                new_label_dof = (copy(label_dof[1]), copy(label_dof[2]))
+                new_label_dof[(legₑ-1) ÷ H.n_legs + 1][legₑ - H.n_legs*((legₑ-1) ÷ H.n_legs)] = sₑ
+                new_label_dof[(legₓ-1) ÷ H.n_legs + 1][legₓ - H.n_legs*((legₓ-1) ÷ H.n_legs)] = sₓ
+                new_label = CartesianIndex(base2int(new_label_dof[1], H.dof_max, offset_zero=true) + 1, base2int(new_label_dof[2], H.dof_max, offset_zero=true) + 1)
+                
+                # Check if the matrix element of the new configuration is zero. If yes, skip.
+                if H.ham[new_label] == 0
+                    prob[idx, legₑ, sₑ, legₓ, sₓ] = 0
+                    continue
+                elseif (new_label == label) && (legₑ == legₓ) && (sₓ == old_s_at_legₑ)
+                else
+                    new_idx = findall(x -> x == new_label, H.labels)[1]  # linear index of the new label (i.e. H.labels[new_idx] == new_label)
+                    new_legₑ = legₓ
+                    new_sₑ = label_dof[(legₓ-1) ÷ H.n_legs + 1][(legₓ-1) % H.n_legs + 1]
+                    push!(labels_set, new_label)
+                    push!(idx_set, new_idx)
+                    push!(legₑ_set, new_legₑ)
+                    push!(sₑ_set, new_sₑ)
+                    push!(legₓ_set, legₓ)
+                    push!(sₓ_set, sₓ)
+                end
+            
+            end
+            weights = [H.ham[c] for c in labels_set]
+            A = solve_set(weights=weights, mode="linear-programming")
+
+            # Assign probabilities to the corresponding tensor elements of `prob`
+            for (i, (lbl_idx, leg_ent, s_ent)) in enumerate(zip(idx_set, legₑ_set, sₑ_set)), (j, (leg_exit, s_exit)) in enumerate(zip(legₓ_set, sₓ_set))
+                prob[lbl_idx, leg_ent, s_ent, leg_exit, s_exit] = A[i,j]
+            end
         end
-        
-        # println("\n")
-        # H = inter.hams[1]
-        # pp_sum = 0
-        # for (idx, label) in enumerate(H.labels), legₑ in 1:2H.n_legs, sₑ in 1:H.dof_max
-        #     p_sum = 0
-        #     for legₓ in 1:2H.n_legs, sₓ in 1:H.dof_max
-        #         println("label: ", label, ", legₑ: ", legₑ, ", sₑ: ", sₑ, ", legₓ: ", legₓ, ", sₓ: ", sₓ, "      prob: ", P[1][idx, legₑ, sₑ, legₓ, sₓ])
-        #         p_sum += P[1][idx, legₑ, sₑ, legₓ, sₓ]
-        #         if P[1][idx, legₑ, sₑ, legₓ, sₓ] < 0
-        #             println("<0 !!!!!!!")
-        #         end
-        #     end
-        #     pp_sum += p_sum
-        #     println("label: ", label, ", legₑ: ", legₑ, ", sₑ: ", sₑ, "    total prob: ", p_sum)
-        # end
-        # println("pp_sum: ", pp_sum)
+        P[ham_idx] = prob
     end
     return P
 end
