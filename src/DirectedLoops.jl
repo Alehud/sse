@@ -242,6 +242,10 @@ function solve_directed_loop_equations(inter::Interaction)
                 prob[lbl_idx, leg_ent, s_ent, leg_exit, s_exit] = A[i,j]
             end
         end
+
+        if any(sum(prob, dims=(4,5)) .≠ 1.0)
+            raise(error("Probabilities don't sum up to 1."))
+        end
         P[ham_idx] = prob
     end
     return P
