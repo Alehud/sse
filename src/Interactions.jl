@@ -55,12 +55,12 @@ List of Hamiltonians (which can be different terms in the model's Hamiltonian) a
 
 """
 struct Interaction
-    dof_max::Int32
+    dof_max::Integer
     hams::Vector{Hamiltonian}
     ham_bonds::Vector{Vector{<:Integer}}
     bond_map::Array{<:Integer}
     
-    function Interaction(dof_max, hams, ham_bonds, bond_map)
+    function Interaction(dof_max::Integer, hams::Vector{Hamiltonian}, ham_bonds::Vector{Vector{<:Integer}}, bond_map::Array{<:Integer})
         if length(hams) ≠ length(ham_bonds)
             raise(error("Length of `hams` is not equal to the length of `ham_bonds`."))
         else
@@ -73,5 +73,14 @@ struct Interaction
             end
         end
         new(dof_max, hams, ham_bonds, bond_map)
+    end
+
+    function Interaction(dof_max::Integer, ham::Hamiltonian, ham_bonds::Vector{<:Integer}, bond_map::Array{<:Integer})
+        if ham.dof_max ≠ dof_max
+            raise(error("`dof_max` of the Hamiltonian `ham` is not equal to the `dof_max` of the interaction.`"))
+        elseif any(bond_map[1:ham.n_legs, ham_bonds] .== 0) || any(bond_map[(ham.n_legs+1):end, ham_bonds] .≠ 0)
+            raise(error("Size of `ham` is not compatible with the number of d.o.f. in `bond_map` columns that correspond to `ham_bonds`."))
+        end
+        new(dof_max, [ham], [ham_bonds], bond_map)
     end
 end
