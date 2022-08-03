@@ -48,18 +48,19 @@ Convert a vector `digits` containing the digits in a given base `b` to the corre
 
 """
 function base2int(digits::Vector{<:Integer}, b::Integer; offset_zero::Bool=false)
-    if b ≤ 1
-        raise(error("`b` has to be positive > 1."))
-    elseif any(digits < 0) ||
-        raise(error("`digits` cannot contain negative integers."))
-    elseif any(digits .≥ b)
-        raise(error("Integers in `digits` have to be less than base `b`."))
-    end
-    
     digits_temp = copy(digits)
     if offset_zero
         digits_temp .-= 1
     end
+
+    if b ≤ 1
+        raise(error("`b` has to be positive > 1."))
+    elseif any(digits_temp .< 0)
+        raise(error("`digits` cannot contain negative integers."))
+    elseif any(digits_temp .≥ b)
+        raise(error("Integers in `digits` have to be less than base `b`."))
+    end
+    
     n = 0
     for (i, d) in enumerate(digits_temp[end:-1:1])
         n += d * b^(i-1)
