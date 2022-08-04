@@ -176,7 +176,7 @@ The final tensor looks like P[type of hamiltonian][label, entrance leg, new stat
 function solve_directed_loop_equations(inter::Interaction)
     P = Vector{Array}(undef, length(inter.hams))
 
-    for (ham_idx, (H, ham_bonds)) in enumerate(zip(inter.hams, inter.ham_bonds))
+    for (ham_idx, H) in enumerate(inter.hams)
         prob = fill(Float32(-1.0), (length(H.labels), 2H.n_legs, H.dof_max, 2H.n_legs, H.dof_max))
         # prob[label, entrance leg, new state of entrance leg, exit leg, new state of exit leg]
         # If entrance and exit legs are the same, then the "new state of exit leg" decides the new state of this leg (not the "new state of entrance leg")!
@@ -248,5 +248,6 @@ function solve_directed_loop_equations(inter::Interaction)
         end
         P[ham_idx] = prob
     end
+    println("Directed loop equations solved.")
     return P
 end
