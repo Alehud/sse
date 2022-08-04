@@ -50,37 +50,34 @@ List of Hamiltonians (which can be different terms in the model's Hamiltonian) a
 # Fields
 - `dof_max::Int32`: each d.o.f. is represented by an integer from 1 to `dof_max`
 - `hams::Vector{Array{<:Number}}`: vector containing different types of local Hamiltonians
-- `ham_bonds::Vector{Vector{<:Integer}}`: vector of vectors with bonds corresponding to every Hamiltonian from `ham` (has to be the same length as `ham`)
+- `hams_bonds::Vector{Vector{<:Integer}}`: vector of vectors with bonds corresponding to every Hamiltonian from `ham` (has to be the same length as `ham`)
 - `bond_map::Array{<:Integer}`: spins associated to each bond (see `construct_lattice()` function from ConstructLattice.jl)
 
 """
 struct Interaction
     dof_max::Integer
     hams::Vector{Hamiltonian}
-    ham_bonds::Vector{Vector{<:Integer}}
+    hams_bonds::Vector{Vector{<:Integer}}
     bond_map::Array{<:Integer}
+    n_bonds::Integer
+    n_dofs::Integer
     
-    function Interaction(dof_max::Integer, hams::Vector{Hamiltonian}, ham_bonds::Vector{Vector{<:Integer}}, bond_map::Array{<:Integer})
-        if length(hams) ≠ length(ham_bonds)
-            raise(error("Length of `hams` is not equal to the length of `ham_bonds`."))
+    function Interaction(dof_max::Integer, hams::Vector{Hamiltonian}, hams_bonds::Vector{Vector{<:Integer}}, bond_map::Array{<:Integer})
+        if length(hams) ≠ length(hams_bonds)
+            raise(error("Length of `hams` is not equal to the length of `hams_bonds`."))
         else
-            for (ham, idx) in zip(hams, ham_bonds)
-                if ham.dof_max ≠ dof_max
+            for (H, idx) in zip(hams, hams_bonds)
+                if H.dof_max ≠ dof_max
                     raise(error("`dof_max` of one of the Hamiltonians from `hams` is not equal to the `dof_max` of the interaction.`"))
-                elseif any(bond_map[1:ham.n_legs, idx] .== 0) || any(bond_map[(ham.n_legs+1):end, idx] .≠ 0)
-                    raise(error("Size of `hams` is not compatible with the number of d.o.f. in `bond_map` columns that correspond to `ham_bonds`."))
+                elseif any(bond_map[1:H.n_legs, idx] .== 0) || any(bond_map[(H.n_legs+1):end, idx] .≠ 0)
+                    raise(error("Size of `hams` is not compatible with the number of d.o.f. in `bond_map` columns that correspond to `hams_bonds`."))
                 end
             end
         end
-        new(dof_max, hams, ham_bonds, bond_map)
+        new(dof_max, hams, hams_bonds, bond_map, size(bond_map)[2], maximum(bond_map))
     end
 
-    function Interaction(dof_max::Integer, ham::Hamiltonian, ham_bonds::Vector{<:Integer}, bond_map::Array{<:Integer})
-        if ham.dof_max ≠ dof_max
-            raise(error("`dof_max` of the Hamiltonian `ham` is not equal to the `dof_max` of the interaction.`"))
-        elseif any(bond_map[1:ham.n_legs, ham_bonds] .== 0) || any(bond_map[(ham.n_legs+1):end, ham_bonds] .≠ 0)
-            raise(error("Size of `ham` is not compatible with the number of d.o.f. in `bond_map` columns that correspond to `ham_bonds`."))
-        end
-        new(dof_max, [ham], [ham_bonds], bond_map)
+    function Interaction(H::Hamiltonian, bond_map::Array{<:Integer})
+        new(H.dof_max, [H], [[1:size(bond_map)[2];]], bond_map, size(bond_map)[2], maximum(bond_map))
     end
 end
