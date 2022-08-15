@@ -174,7 +174,7 @@ The final tensor looks like P[type of hamiltonian][label, entrance leg, new stat
 
 """
 function solve_directed_loop_equations(inter::Interaction)
-    P = Vector{Array}(undef, length(inter.hams))
+    P = Vector{Array{Float32, 5}}(undef, length(inter.hams))
 
     for (ham_idx, H) in enumerate(inter.hams)
         prob = fill(Float32(-1.0), (length(H.labels), 2H.n_legs, H.dof_max, 2H.n_legs, H.dof_max))
