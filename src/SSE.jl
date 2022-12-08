@@ -14,6 +14,7 @@ include("Lattices.jl")
 include("Interactions.jl")
 include("DirectedLoops.jl")
 include("Updates.jl")
+include("Measurements.jl")
 
 end
 
