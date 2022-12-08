@@ -176,6 +176,11 @@ function off_diagonal_update!(; vals::Vals, inter::Interaction, mode::String, P:
         raise(error("Wrong mode of the off-diagonal update."))
     end
     for _ in 1:loop_flips
+        # If there are no operators (i.e., n == 0)
+        if vals.n == 0
+            break
+        end
+
         # Randomly choose initial leg
         v0 = 0
         while true
@@ -250,6 +255,7 @@ function off_diagonal_update!(; vals::Vals, inter::Interaction, mode::String, P:
                 vals.dofs[site] = sₓ
             end
 
+            # If the loop is too long, terminate and restore the original configuration
             loop_length += 1
             if loop_length > max_loop_length
                 vals.dofs = deepcopy(dofs_backup)
@@ -300,9 +306,6 @@ function adjust_cut_off!(; vals::Vals, inter::Interaction)
     end
 end
 
-
-function measure()
-end
 
 # # TODO: implement for interactions with several types of bonds
 # function off_diagonal_update!(; vals::Vals, inter::Interaction, mode::String, connections::Vector{<:Integer})
