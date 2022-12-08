@@ -6,7 +6,7 @@ Hamiltonian (one of the terms in the model's Hamiltonian).
 # Fields
 - `dof_max::Int32`: each d.o.f. is represented by an integer from 1 to `dof_max`
 - `n_legs::Int32`: number of legs from one side of the vertex (i.e., on how many degrees of freedom the term acts)
-- `ham::Array{<:Number}`: Hamiltonian matrix
+- `ham::Array{<:Number, 2}`: Hamiltonian matrix
 - `labels::Vector{CartesianIndex{2}}`: cartesian coordinates of nonzero elements of `ham`; the i'th nonzero element can be accessed as `ham[labels[i][1], labels[i][2]]` or `ham[labels[i]]`.
 - `labels_dof::Vector{Tuple{Tuple{Vararg{Int32}}, Tuple{Vararg{Int32}}}}`: values of degrees of freedom at each nonzero matrix element
 
@@ -14,7 +14,7 @@ Hamiltonian (one of the terms in the model's Hamiltonian).
 struct Hamiltonian
     dof_max::Int32
     n_legs::Int32
-    ham::Array{<:Number}
+    ham::Array{<:Number, 2}
     labels::Vector{CartesianIndex{2}}
     labels_dof::Vector{Tuple{Vector{<:Integer}, Vector{<:Integer}}}
     
@@ -49,9 +49,9 @@ end
 List of Hamiltonians (which can be different terms in the model's Hamiltonian) and bonds associated to each of them.
 # Fields
 - `dof_max::Int32`: each d.o.f. is represented by an integer from 1 to `dof_max`
-- `hams::Vector{Array{<:Number}}`: vector containing different types of local Hamiltonians
+- `hams::Vector{Array{<:Number, 2}}`: vector containing different types of local Hamiltonians
 - `hams_bonds::Vector{Vector{<:Integer}}`: vector of vectors with bonds corresponding to every Hamiltonian from `ham` (has to be the same length as `ham`)
-- `bond_map::Array{<:Integer}`: spins associated to each bond (see `construct_lattice()` function from ConstructLattice.jl)
+- `bond_map::Array{<:Integer, 2}`: spins associated to each bond (see `construct_lattice()` function from ConstructLattice.jl)
 - `n_bonds::Integer`: total number of bonds
 - `n_dofs::Integer`: total number of degrees of freedom
 - `n_legs_max::Integer`: maximal number of legs (from one side) in a single vertex
@@ -61,12 +61,13 @@ struct Interaction
     dof_max::Integer
     hams::Vector{Hamiltonian}
     hams_bonds::Vector{Vector{<:Integer}}
-    bond_map::Array{<:Integer}
+    bond_map::Array{<:Integer, 2}
     n_bonds::Integer
     n_dofs::Integer
     n_legs_max::Integer
+    # bipartition_map::Vector{<:Integer}
     
-    function Interaction(dof_max::Integer, hams::Vector{Hamiltonian}, hams_bonds::Vector{Vector{<:Integer}}, bond_map::Array{<:Integer})
+    function Interaction(dof_max::Integer, hams::Vector{Hamiltonian}, hams_bonds::Vector{Vector{<:Integer}}, bond_map::Array{<:Integer, 2})
         if length(hams) ≠ length(hams_bonds)
             raise(error("Length of `hams` is not equal to the length of `hams_bonds`."))
         else
@@ -78,16 +79,40 @@ struct Interaction
                 end
             end
         end
+
         n_legs_max = 0
         for H in inter.hams
             if H.n_legs > n_legs_max
                 n_legs_max = H.n_legs
             end
         end
-        new(dof_max, hams, hams_bonds, bond_map, size(bond_map)[2], maximum(bond_map), n_legs_max)
+
+        n_dofs = maximum(bond_map)
+        n_bonds = size(bond_map)[2]
+
+        # # Assign ±1 to the two sublattices of the bipartite lattice. Assign all zeros if the lattice is not bipartite.
+        # bipartition_map = zeros(Int8, n_dofs)
+        # bipartition_map[1] = 1
+        # flag = false
+        # for i in 1:n_bonds
+        #     for site in bond_map[2:end, i]
+        #         if bipartition_map[site] == 0
+        #             bipartition_map[site] = bipartition_map[bond_map[1, i]] * (-1)
+        #         elseif bipartition_map[site] == bipartition_map[bond_map[1, i]]
+        #             flag = true
+        #             break
+        #         end
+        #     end
+        #     if flag
+        #         bipartition_map = zeros(Int8, n_dofs)
+        #         break
+        #     end
+        # end
+
+        new(dof_max, hams, hams_bonds, bond_map, n_bonds, n_dofs, n_legs_max)
     end
 
-    function Interaction(H::Hamiltonian, bond_map::Array{<:Integer})
+    function Interaction(H::Hamiltonian, bond_map::Array{<:Integer, 2})
         new(H.dof_max, [H], [[1:size(bond_map)[2];]], bond_map, size(bond_map)[2], maximum(bond_map), H.n_legs)
     end
 end
